@@ -1,5 +1,3 @@
-import re
-
 class Calculator:
     def __init__(self):
         # Приоритеты операций: +, - (1), *, / (2), ^ (3)
@@ -8,17 +6,25 @@ class Calculator:
     def is_operator(self, c):
         return c in '+-*/^'
 
-    def preprocess_implicit_multiplication(self, expr):
-        """Добавляет пропущенные '*' для неявного умножения"""
-        # Убираем пробелы
-        expr = expr.replace(' ', '')
-        # 1. Число перед открывающей скобкой: 5( → 5*(
-        expr = re.sub(r'(\d)\(', r'\1*(', expr)
-        # 2. Закрывающая скобка перед числом: )5 → )*5
-        expr = re.sub(r'\)(\d)', r')*\1', expr)
-        # 3. Закрывающая скобка перед открывающей: )( → )*(
-        expr = re.sub(r'\)\(', r')*(', expr)
-        return expr
+    def preprocess_expression(self, expr):
+        """Добавляет явный оператор умножения и обрабатывает унарный минус"""
+        result = ""
+        prev = ""
+        i = 0
+        while i < len(expr):
+            c = expr[i]
+
+            # Вставка умножения между числом или скобкой и '('
+            if c == '(' and (prev.isdigit() or prev == ')'):
+                result += '*('
+            # Обработка унарного минуса: если минус на начале, или после оператора или '('
+            elif c == '-' and (i == 0 or prev in '+-*/^('):
+                result += '0-'  # добавляем 0 для корректного разбора унарного минуса
+            else:
+                result += c
+            prev = c
+            i += 1
+        return result
 
     def to_rpn(self, expression):
         """Преобразование инфиксного выражения в обратную польскую нотацию"""
@@ -28,7 +34,6 @@ class Calculator:
         while i < len(expression):
             c = expression[i]
             if c.isdigit() or c == '.':
-                # Считываем число с возможной десятичной точкой
                 num = c
                 while i + 1 < len(expression) and (expression[i + 1].isdigit() or expression[i + 1] == '.'):
                     i += 1
@@ -40,16 +45,18 @@ class Calculator:
                 while stack and stack[-1] != '(':
                     output.append(stack.pop())
                 if stack:
-                    stack.pop()  # Удаляем '('
+                    stack.pop()
                 else:
                     raise ValueError("Несбалансированные скобки")
             elif self.is_operator(c):
                 while stack and stack[-1] != '(' and (
-                    self.precedence.get(stack[-1], 0) > self.precedence[c] or
-                    (self.precedence.get(stack[-1], 0) == self.precedence[c] and c != '^')
+                        self.precedence.get(stack[-1], 0) > self.precedence[c] or
+                        (self.precedence.get(stack[-1], 0) == self.precedence[c] and c != '^')
                 ):
                     output.append(stack.pop())
                 stack.append(c)
+            else:
+                raise ValueError(f"Неизвестный символ: {c}")
             i += 1
         while stack:
             if stack[-1] in '()':
@@ -58,7 +65,7 @@ class Calculator:
         return output
 
     def evaluate_rpn(self, rpn):
-        """Вычисление выражения, записанного в обратной польской нотации"""
+        """Вычисление выражения в обратной польской нотации"""
         stack = []
         for token in rpn:
             if token not in self.precedence:
@@ -88,21 +95,27 @@ class Calculator:
         return stack[0]
 
     def calculate(self, expression):
-        """Вычисление результата выражения в инфиксной форме с поддержкой неявного умножения"""
+        expression = expression.replace(' ', '')
         if not expression:
             raise ValueError("Пустое выражение")
-        expr_clean = self.preprocess_implicit_multiplication(expression)
-        rpn = self.to_rpn(expr_clean)
-        return self.evaluate_rpn(rpn), rpn  # Возвращаем и результат, и ОПН
+        expression = self.preprocess_expression(expression)
+        rpn = self.to_rpn(expression)
+        result = self.evaluate_rpn(rpn)
+        return result, rpn
 
 
-# Ввод выражения с консоли
 if __name__ == "__main__":
     calc = Calculator()
     try:
         expr = input("Введите математическое выражение: ")
-        result, rpn = calc.calculate(expr)
+        expr_clean = expr.replace(' ', '')
+        if not expr_clean:
+            raise ValueError("Пустое выражение")
+        expr_clean = calc.preprocess_expression(expr_clean)
+        rpn = calc.to_rpn(expr_clean)
         print("Обратная польская запись:", ' '.join(rpn))
+        result = calc.evaluate_rpn(rpn)
         print("Результат:", result)
     except Exception as e:
         print("Ошибка:", e)
+
