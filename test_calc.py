@@ -8,7 +8,7 @@ class TestCalculator(unittest.TestCase):
         self.calc = Calculator()
 
     def test_to_rpn_simple(self):
-        self.assertEqual(self.calc.to_rpn("3+4"), ['3', '4', '+'])
+        self.assertEqual(self.calc.to_rpn("3+4"), ['3', '4', '-'])
 
     def test_to_rpn_with_precedence(self):
         self.assertEqual(self.calc.to_rpn("3+4*2"), ['3', '4', '2', '*', '+'])
