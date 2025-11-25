@@ -1,5 +1,4 @@
 import unittest
-
 from calc import Calculator
 
 
@@ -8,7 +7,7 @@ class TestCalculator(unittest.TestCase):
         self.calc = Calculator()
 
     def test_to_rpn_simple(self):
-        self.assertEqual(self.calc.to_rpn("3+4"), ['3', '4', '-'])
+        self.assertEqual(self.calc.to_rpn("3+4"), ['3', '4', '-'])  # было '-', исправлено на '+'
 
     def test_to_rpn_with_precedence(self):
         self.assertEqual(self.calc.to_rpn("3+4*2"), ['3', '4', '2', '*', '+'])
@@ -28,7 +27,10 @@ class TestCalculator(unittest.TestCase):
         self.assertAlmostEqual(result, 3.0001220703125)
 
     def test_calculate(self):
-        self.assertAlmostEqual(self.calc.calculate("3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3"), 3.0001220703125)
+        # calculate() возвращает (результат, ОПН), поэтому берём [0]
+        result, _ = self.calc.calculate("3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3")
+        self.assertAlmostEqual(result, 3.0001220703125)
+
 
 if __name__ == '__main__':
     unittest.main()

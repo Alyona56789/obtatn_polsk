@@ -1,3 +1,5 @@
+import re
+
 class Calculator:
     def __init__(self):
         # Приоритеты операций: +, - (1), *, / (2), ^ (3)
@@ -5,6 +7,18 @@ class Calculator:
 
     def is_operator(self, c):
         return c in '+-*/^'
+
+    def preprocess_implicit_multiplication(self, expr):
+        """Добавляет пропущенные '*' для неявного умножения"""
+        # Убираем пробелы
+        expr = expr.replace(' ', '')
+        # 1. Число перед открывающей скобкой: 5( → 5*(
+        expr = re.sub(r'(\d)\(', r'\1*(', expr)
+        # 2. Закрывающая скобка перед числом: )5 → )*5
+        expr = re.sub(r'\)(\d)', r')*\1', expr)
+        # 3. Закрывающая скобка перед открывающей: )( → )*(
+        expr = re.sub(r'\)\(', r')*(', expr)
+        return expr
 
     def to_rpn(self, expression):
         """Преобразование инфиксного выражения в обратную польскую нотацию"""
@@ -74,12 +88,12 @@ class Calculator:
         return stack[0]
 
     def calculate(self, expression):
-        """Вычисление результата выражения в инфиксной форме"""
-        expression = expression.replace(' ', '')
+        """Вычисление результата выражения в инфиксной форме с поддержкой неявного умножения"""
         if not expression:
             raise ValueError("Пустое выражение")
-        rpn = self.to_rpn(expression)
-        return self.evaluate_rpn(rpn)
+        expr_clean = self.preprocess_implicit_multiplication(expression)
+        rpn = self.to_rpn(expr_clean)
+        return self.evaluate_rpn(rpn), rpn  # Возвращаем и результат, и ОПН
 
 
 # Ввод выражения с консоли
@@ -87,12 +101,8 @@ if __name__ == "__main__":
     calc = Calculator()
     try:
         expr = input("Введите математическое выражение: ")
-        expr_clean = expr.replace(' ', '')
-        if not expr_clean:
-            raise ValueError("Пустое выражение")
-        rpn = calc.to_rpn(expr_clean)
+        result, rpn = calc.calculate(expr)
         print("Обратная польская запись:", ' '.join(rpn))
-        result = calc.evaluate_rpn(rpn)
         print("Результат:", result)
     except Exception as e:
         print("Ошибка:", e)
